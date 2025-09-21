@@ -1,0 +1,18 @@
+# Content farms and low-quality sources
+buzzfeed.com
+clickhole.com
+viral.com
+
+# Social media aggregators (unreliable)
+reddit.com
+9gag.com
+tumblr.com
+
+# Known misinformation sources
+# (Add domains as needed based on quality assessment)
+
+# SEO spam sites
+# (Add patterns as identified)
+
+# Advertising-heavy sites with poor content
+# (Add domains with low editorial standards)

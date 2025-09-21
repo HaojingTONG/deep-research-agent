@@ -1,0 +1,3 @@
+{"query": "Compare 2024-2025 evidence on ultra-processed foods and give recommendations", "audience": "researcher", "constraints": {"time_window": "2024-2025", "language": "en"}}
+{"query": "What are the latest developments in AI safety research?", "audience": "executive", "constraints": {"time_window": "2024-2025", "language": "en"}}
+{"query": "How effective are remote work policies for software teams?", "audience": "manager", "constraints": {"focus": "technology companies", "language": "en"}}

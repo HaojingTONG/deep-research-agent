@@ -1,0 +1,29 @@
+constraints:
+  time_windows:
+    - "2024-2025"  # Recent evidence only
+    - "2020-2025"  # 5-year window
+    - "2015-2025"  # 10-year window
+    - "any"        # No time restriction
+
+  languages:
+    - "en"         # English only
+    - "zh"         # Chinese only
+    - "multi"      # Multiple languages
+
+  regions:
+    - "global"     # Worldwide
+    - "us"         # United States
+    - "eu"         # European Union
+    - "asia"       # Asia Pacific
+
+  source_types:
+    - "academic"   # Scholarly articles only
+    - "news"       # News and media
+    - "mixed"      # All source types
+    - "official"   # Government and official sources
+
+  output_requirements:
+    min_sources: 5
+    max_sources: 50
+    min_quality_score: 3.0
+    required_sections: ["executive_summary", "key_findings", "recommendations"]

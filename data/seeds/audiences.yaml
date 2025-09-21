@@ -1,0 +1,30 @@
+audiences:
+  executive:
+    description: "C-level executives and decision makers"
+    output_style: "high-level summary with actionable insights"
+    length: "short"
+    focus: "business impact and strategic recommendations"
+
+  researcher:
+    description: "Academic researchers and scientists"
+    output_style: "detailed analysis with comprehensive citations"
+    length: "long"
+    focus: "methodology, evidence quality, and knowledge gaps"
+
+  engineer:
+    description: "Software engineers and technical teams"
+    output_style: "practical implementation details"
+    length: "medium"
+    focus: "technical feasibility and implementation guidance"
+
+  manager:
+    description: "Team leads and project managers"
+    output_style: "balanced overview with actionable next steps"
+    length: "medium"
+    focus: "team impact and resource planning"
+
+  consumer:
+    description: "General public and end users"
+    output_style: "accessible language with clear explanations"
+    length: "short"
+    focus: "practical benefits and real-world applications"
