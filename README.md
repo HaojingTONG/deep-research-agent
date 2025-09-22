@@ -85,7 +85,7 @@ data/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/deep-research-agent.git
+git clone https://github.com/HaojingTONG/deep-research-agent.git
 cd deep-research-agent
 
 # Install dependencies
