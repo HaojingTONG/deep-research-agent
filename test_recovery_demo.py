@@ -8,9 +8,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import (ClarifyAgent, ResearchBriefAgent, SupervisorPlannerAgent,
-                  ResearcherAgent, CompressConflictAgent, ReportAgent,
-                  EvaluatorAgent, RecoveryReplanAgent)
+from agents import (ClarifyAgent, ResearchBriefAgent, SupervisorPlannerAgent,
+                    ResearcherAgent, CompressConflictAgent, ReportAgent,
+                    EvaluatorAgent, RecoveryReplanAgent)
 from datetime import datetime
 
 def test_recovery_pipeline():

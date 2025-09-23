@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import RecoveryReplanAgent, ResearcherAgent, CompressConflictAgent, ReportAgent, EvaluatorAgent
+from agents import RecoveryReplanAgent, ResearcherAgent, CompressConflictAgent, ReportAgent, EvaluatorAgent
 
 def test_forced_recovery():
     """Test Recovery Agent with artificially low-quality scores to trigger replan"""

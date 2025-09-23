@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import ObservabilityAgent
+from agents import ObservabilityAgent
 from datetime import datetime
 
 def test_observability_agent():

@@ -17,7 +17,7 @@ def test_complete_recovery_with_files():
     print("=== COMPLETE RECOVERY PIPELINE TEST ===\n")
 
     # Import here to avoid circular imports
-    from main import RecoveryReplanAgent, EvaluatorAgent
+    from agents import RecoveryReplanAgent, EvaluatorAgent
 
     # Create agents
     recovery_agent = RecoveryReplanAgent()

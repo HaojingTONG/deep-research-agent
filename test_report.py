@@ -3,7 +3,7 @@
 Test script for Report Agent functionality
 """
 
-from main import ReportAgent
+from agents import ReportAgent
 
 def test_report_generation():
     """Test Report Agent with mock compression results and evidence"""

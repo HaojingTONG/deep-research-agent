@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import ModelRouterAgent
+from agents import ModelRouterAgent
 
 def demo_model_routing():
     """演示Model Router Agent的工作原理"""

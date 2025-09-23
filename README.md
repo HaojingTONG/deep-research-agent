@@ -16,6 +16,32 @@ Deep Research Agent is an autonomous research system that:
 
 ## 🏗️ System Architecture
 
+### Modular Multi-Agent Design
+
+The system follows a clean modular architecture with separated concerns:
+
+```
+deep-research-agent/
+├── agents/                    # 10 specialized agent classes
+│   ├── clarify_agent.py      # Query clarification
+│   ├── research_brief_agent.py # Research planning
+│   ├── supervisor_planner_agent.py # Search orchestration
+│   ├── researcher_agent.py   # Evidence collection
+│   ├── compress_conflict_agent.py # Synthesis & conflict analysis
+│   ├── report_agent.py       # Report generation
+│   ├── evaluator_agent.py    # Quality assessment
+│   ├── recovery_replan_agent.py # Self-healing
+│   ├── model_router_agent.py # Cost/quality optimization
+│   └── observability_agent.py # Audit & monitoring
+├── pipeline/                  # Workflow orchestration
+│   ├── runner.py             # Main execution pipeline
+│   └── __init__.py           # Pipeline exports
+├── utils/                     # Shared utilities
+│   ├── data_manager.py       # File operations & data persistence
+│   └── __init__.py           # Utility exports
+└── main.py                   # CLI interface
+```
+
 ### 10-Phase Research Pipeline
 
 ```
@@ -102,6 +128,12 @@ python main.py "What are the benefits of exercise?"
 python main.py "AI safety research" --test-researcher
 python main.py "Climate change impacts" --test-compress
 python main.py "Remote work effectiveness" --test-report
+python main.py "Model routing demo" --test-routing
+python main.py "Observability demo" --test-observability
+
+# Import agents programmatically
+python -c "from agents import ClarifyAgent, ResearcherAgent; agent = ClarifyAgent()"
+python -c "from pipeline import run_research_pipeline; run_research_pipeline('test', None)"
 ```
 
 ### Example Output
@@ -157,7 +189,25 @@ Reports scoring below thresholds trigger automatic recovery procedures.
 
 ```
 deep-research-agent/
-├── main.py                        # Core pipeline implementation
+├── agents/                        # Modular agent implementations
+│   ├── __init__.py               # Unified agent imports
+│   ├── clarify_agent.py          # Phase 1: Query clarification
+│   ├── research_brief_agent.py   # Phase 2: Research planning
+│   ├── supervisor_planner_agent.py # Phase 3: Search orchestration
+│   ├── researcher_agent.py       # Phase 4: Evidence collection
+│   ├── compress_conflict_agent.py # Phase 5: Synthesis & conflicts
+│   ├── report_agent.py           # Phase 6: Report generation
+│   ├── evaluator_agent.py        # Phase 7: Quality assessment
+│   ├── recovery_replan_agent.py  # Phase 8: Self-healing
+│   ├── model_router_agent.py     # Phase 9: Cost optimization
+│   └── observability_agent.py    # Phase 10: Audit trails
+├── pipeline/                      # Workflow orchestration
+│   ├── __init__.py               # Pipeline exports
+│   └── runner.py                 # Main execution logic
+├── utils/                         # Shared utilities
+│   ├── __init__.py               # Utility exports
+│   └── data_manager.py           # File operations & persistence
+├── main.py                        # CLI interface
 ├── requirements.txt               # Python dependencies
 ├── data/                          # Data directory (see above)
 ├── test_*.py                      # Component test scripts
@@ -167,8 +217,10 @@ deep-research-agent/
 
 ### Key Components
 
-- **DataManager**: Handles file operations and directory structure
-- **Multi-Agent Pipeline**: 10 specialized agents with clear interfaces
+- **Modular Agents**: 10 specialized agents in separate files for maintainability
+- **Pipeline Runner**: Centralized workflow orchestration with phase management
+- **DataManager**: Handles file operations and timestamped directory structure
+- **CLI Interface**: Clean command-line interface with test mode support
 - **Caching System**: Web search and content fetch caching
 - **Quality Assurance**: Automatic evaluation and recovery
 - **Observability**: Structured logging and audit trails
@@ -187,6 +239,12 @@ python test_observability.py       # Audit trail generation
 
 # Demo complete functionality
 python demo_observability.py       # Observability features
+python demo_model_routing.py       # Model routing strategies
+
+# Test modular architecture
+python -c "from agents import *; print('All agents imported successfully')"
+python -c "from pipeline import run_research_pipeline; print('Pipeline imported successfully')"
+python -c "from utils import DataManager; print('Utils imported successfully')"
 ```
 
 ## 🔍 Features

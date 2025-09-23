@@ -4,7 +4,7 @@ Test script for Researcher Agent functionality
 """
 
 import json
-from main import ResearcherAgent
+from agents import ResearcherAgent
 
 def test_simple_search():
     """Test with a simple query without complex operators"""

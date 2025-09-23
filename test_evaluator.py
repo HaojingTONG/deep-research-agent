@@ -4,7 +4,7 @@ Test script for Evaluator/QA Agent functionality
 """
 
 import json
-from main import EvaluatorAgent
+from agents import EvaluatorAgent
 
 def test_evaluator():
     """Test Evaluator Agent with different quality reports"""

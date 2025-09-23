@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import RecoveryReplanAgent, ResearcherAgent
+from agents import RecoveryReplanAgent, ResearcherAgent
 
 def test_real_recovery():
     """Test Recovery Agent with real evaluation data from previous run"""

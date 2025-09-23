@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import ModelRouterAgent
+from agents import ModelRouterAgent
 
 def test_model_router():
     """Test Model Router Agent with different query types"""

@@ -4,7 +4,7 @@ Test script for Compress + Conflict Agent functionality
 """
 
 import json
-from main import CompressConflictAgent
+from agents import CompressConflictAgent
 
 def test_compress_conflict():
     """Test Compress + Conflict Agent with mock evidence data"""

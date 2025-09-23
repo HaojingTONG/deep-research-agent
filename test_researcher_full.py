@@ -4,7 +4,7 @@ Full test script for Researcher Agent functionality
 """
 
 import json
-from main import ResearcherAgent
+from agents import ResearcherAgent
 
 def test_quality_scoring():
     """Test different types of sources to validate quality scoring"""
