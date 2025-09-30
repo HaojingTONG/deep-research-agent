@@ -1,0 +1,61 @@
+{
+  "replan": [
+    {
+      "subquery": "ultra-processed foods health research 2024 2025 recent studies",
+      "rationale": "Address lack of recent evidence by targeting 2024-2025 publications",
+      "operators": [
+        "site:pubmed.ncbi.nlm.nih.gov",
+        "site:nih.gov",
+        "inurl:2024",
+        "inurl:2025"
+      ],
+      "k": 8
+    },
+    {
+      "subquery": "ultra-processed foods systematic review meta-analysis comprehensive",
+      "rationale": "Expand coverage with high-quality systematic reviews and meta-analyses",
+      "operators": [
+        "site:cochranelibrary.com",
+        "site:pubmed.ncbi.nlm.nih.gov",
+        "filetype:pdf"
+      ],
+      "k": 6
+    },
+    {
+      "subquery": "ultra-processed foods randomized controlled trial clinical study methodology",
+      "rationale": "Improve evidence quality with RCTs and rigorous clinical studies",
+      "operators": [
+        "site:clinicaltrials.gov",
+        "site:pubmed.ncbi.nlm.nih.gov",
+        "inurl:rct"
+      ],
+      "k": 6
+    },
+    {
+      "subquery": "ultra-processed foods benefits advantages nutritional value positive",
+      "rationale": "Balance perspective by seeking evidence of potential benefits or advantages",
+      "operators": [
+        "site:nutritionsource.hsph.harvard.edu",
+        "site:eatright.org"
+      ],
+      "k": 5
+    },
+    {
+      "subquery": "ultra-processed foods health benefits controversy evidence review",
+      "rationale": "Resolve conflict about health benefits with authoritative reviews",
+      "operators": [
+        "site:who.int",
+        "site:fda.gov",
+        "site:pubmed.ncbi.nlm.nih.gov"
+      ],
+      "k": 6
+    }
+  ],
+  "expected_gain": "Recency score should increase to 3-4 with 2024-2025 sources; Coverage score should increase to 3-4 with diverse systematic reviews; Faithfulness score should increase to 4-5 with higher quality evidence; Balance score should increase to 3-4 with broader perspective coverage; Overall score should improve from 2.5 to approximately 3.5",
+  "trigger_reason": "Quality score 2.5 below 4.0 threshold",
+  "target_metrics": [
+    "coverage (current: 2/5)",
+    "balance (current: 1/5)",
+    "recency (current: 0/5)"
+  ]
+}

@@ -19,3 +19,6 @@ python-dateutil>=2.9.0.post0
 
 # Template rendering
 jinja2>=3.1.4
+
+# Terminal visualization
+rich>=13.0.0

@@ -37,8 +37,11 @@ class SupervisorPlannerAgent:
         # Extract research context
         context = self._extract_context_from_brief(brief_markdown)
 
+        # Extract topic keywords from brief
+        topic_keywords = self._extract_topic_keywords_from_brief(brief_markdown)
+
         # Generate diversified subqueries
-        subqueries = self._generate_subqueries(sub_questions, context)
+        subqueries = self._generate_subqueries(sub_questions, context, topic_keywords)
 
         # Set coverage targets
         coverage_target = self._define_coverage_target(context)
@@ -97,7 +100,17 @@ class SupervisorPlannerAgent:
 
         return context
 
-    def _generate_subqueries(self, sub_questions: List[str], context: Dict[str, str]) -> List[Dict[str, Any]]:
+    def _extract_topic_keywords_from_brief(self, brief_markdown: str) -> List[str]:
+        """Extract topic keywords from research brief."""
+        lines = brief_markdown.split('\n')
+        for line in lines:
+            line = line.strip()
+            if "**Topic Keywords:**" in line:
+                keywords_str = line.split("**Topic Keywords:**")[1].strip()
+                return [kw.strip() for kw in keywords_str.split(',') if kw.strip()]
+        return []
+
+    def _generate_subqueries(self, sub_questions: List[str], context: Dict[str, str], topic_keywords: List[str] = None) -> List[Dict[str, Any]]:
         """Generate diversified subqueries with search operators based on research context."""
         subqueries = []
         topic = context.get("topic", "general")
@@ -165,12 +178,20 @@ class SupervisorPlannerAgent:
                 }
             ]
         else:
-            # Generic approach for unknown topics
+            # Generic approach using topic keywords and sub-questions
             base_queries = []
+            topic_terms = topic_keywords[:2] if topic_keywords else []  # Use top 2 topic keywords
+
             for i, question in enumerate(sub_questions[:6]):
-                query_terms = self._extract_key_terms(question)
+                # Extract key terms from question and combine with topic keywords
+                question_terms = self._extract_key_terms(question)
+
+                # Prioritize topic keywords, then meaningful question terms
+                combined_terms = topic_terms + [term for term in question_terms if term not in topic_terms]
+                search_terms = combined_terms[:4]  # Limit to 4 terms for focused search
+
                 base_queries.append({
-                    "base": " ".join(query_terms),
+                    "base": " ".join(search_terms),
                     "rationale": f"Address sub-question {i+1}: {question[:50]}...",
                     "operators": ["filetype:pdf", "inurl:research"],
                     "freshness": "recent"

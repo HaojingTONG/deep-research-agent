@@ -19,9 +19,12 @@ def main():
     """
     if len(sys.argv) < 2:
         print("Deep Research Agent - CLI Interface")
-        print("\nUsage: python main.py '<your research query>' [--test-mode]")
+        print("\nUsage: python main.py '<your research query>' [options]")
         print("\nExample:")
         print("  python main.py 'Compare 2024–2025 evidence on ultra-processed foods and give recommendations.'")
+        print("  python main.py 'Research query here' --viz  # Enable terminal visualization")
+        print("\nOptions:")
+        print("  --viz               Enable interactive terminal visualization")
         print("\nTest modes:")
         print("  --test-routing      Test model routing decisions")
         print("  --test-observability Test log summarization and audit trail generation")
@@ -34,20 +37,23 @@ def main():
 
     user_query = sys.argv[1]
 
-    # Parse test mode
+    # Parse arguments
     test_mode = None
-    if len(sys.argv) > 2:
-        test_arg = sys.argv[2]
-        if test_arg.startswith("--test-"):
-            test_mode = test_arg[7:]  # Remove "--test-" prefix
+    enable_viz = False
+
+    for arg in sys.argv[2:]:
+        if arg.startswith("--test-"):
+            test_mode = arg[7:]  # Remove "--test-" prefix
+        elif arg == "--viz":
+            enable_viz = True
         else:
-            print(f"Error: Unknown argument '{test_arg}'")
-            print("Use --test-[mode] for test modes. See --help for options.")
+            print(f"Error: Unknown argument '{arg}'")
+            print("Use --viz for visualization or --test-[mode] for test modes. See --help for options.")
             return 1
 
     try:
         # Run the pipeline
-        results = run_research_pipeline(user_query, test_mode)
+        results = run_research_pipeline(user_query, test_mode, enable_viz=enable_viz)
 
         # Check execution status
         if results.get("execution_status") == "completed":

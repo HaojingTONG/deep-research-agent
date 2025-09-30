@@ -8,6 +8,7 @@ Creates audience-tailored reports with executive summaries and recommendations.
 import re
 from typing import Dict, Any, List
 from datetime import datetime
+from utils import extract_topic_keywords
 
 
 class ReportAgent:
@@ -47,10 +48,10 @@ class ReportAgent:
         clusters = compressed_json.get("clusters", [])
 
         # Generate report sections
-        executive_summary = self._generate_executive_summary(key_findings, conflicts, target_audience)
-        key_insights = self._generate_key_insights(key_findings, clusters, evidence_list, target_audience)
+        executive_summary = self._generate_executive_summary(key_findings, conflicts, target_audience, user_query)
+        key_insights = self._generate_key_insights(key_findings, clusters, evidence_list, target_audience, user_query)
         timeline_section = self._generate_timeline_section(evidence_list, target_audience)
-        recommendations = self._generate_recommendations(key_findings, conflicts, gaps, target_audience)
+        recommendations = self._generate_recommendations(key_findings, conflicts, gaps, target_audience, user_query)
         limitations = self._generate_limitations(conflicts, gaps, coverage_stats)
 
         # Build complete report
@@ -101,6 +102,69 @@ class ReportAgent:
 
         return report
 
+    def _extract_topic_keywords(self, user_query: str) -> List[str]:
+        """Extract normalized topic keywords from user query."""
+        return extract_topic_keywords(user_query)
+
+    def _get_topic_context(self, user_query: str) -> Dict[str, str]:
+        """Extract topic context for adaptive language generation."""
+        keywords = self._extract_topic_keywords(user_query)
+        query_lower = user_query.lower()
+
+        # Determine topic domain and appropriate terminology
+        if any(term in query_lower for term in ['artificial intelligence', 'ai', 'machine learning']) and 'education' in query_lower:
+            return {
+                'domain': 'ai_education',
+                'main_topic': 'AI in education',
+                'keywords': keywords,
+                'opportunities_term': 'opportunities',
+                'risks_term': 'challenges',
+                'guidance_term': 'implementation guidance',
+                'subject_area': 'educational technology'
+            }
+        elif any(term in query_lower for term in ['climate', 'environment', 'sustainability']):
+            return {
+                'domain': 'climate',
+                'main_topic': 'climate and environment',
+                'keywords': keywords,
+                'opportunities_term': 'solutions',
+                'risks_term': 'risks',
+                'guidance_term': 'policy recommendations',
+                'subject_area': 'environmental policy'
+            }
+        elif any(term in query_lower for term in ['social media', 'mental health', 'teenagers', 'adolescents', 'psychology']):
+            return {
+                'domain': 'psychology',
+                'main_topic': 'social media and mental health',
+                'keywords': keywords,
+                'opportunities_term': 'benefits',
+                'risks_term': 'risks',
+                'guidance_term': 'wellness recommendations',
+                'subject_area': 'mental health research'
+            }
+        elif any(term in query_lower for term in ['food', 'nutrition', 'diet', 'dietary']) and not any(term in query_lower for term in ['social media', 'mental health']):
+            return {
+                'domain': 'health',
+                'main_topic': 'health and nutrition',
+                'keywords': keywords,
+                'opportunities_term': 'benefits',
+                'risks_term': 'risks',
+                'guidance_term': 'health recommendations',
+                'subject_area': 'health policy'
+            }
+        else:
+            # Generic context
+            topic_phrase = ' '.join(keywords[:2]) if keywords else 'the research topic'
+            return {
+                'domain': 'general',
+                'main_topic': topic_phrase,
+                'keywords': keywords,
+                'opportunities_term': 'opportunities',
+                'risks_term': 'challenges',
+                'guidance_term': 'recommendations',
+                'subject_area': 'research area'
+            }
+
     def _extract_topic_from_query(self, user_query: str) -> str:
         """Extract main topic from user query for report title."""
         query_lower = user_query.lower()
@@ -116,26 +180,38 @@ class ReportAgent:
             return "Research Evidence Analysis"
 
     def _generate_executive_summary(self, key_findings: List[str], conflicts: List[Dict],
-                                  target_audience: str) -> str:
-        """Generate 5-bullet executive summary tailored to audience."""
+                                  target_audience: str, user_query: str) -> str:
+        """Generate 5-bullet executive summary tailored to audience and topic."""
         summary_bullets = []
+        topic_context = self._get_topic_context(user_query)
+        main_topic = topic_context['main_topic']
+        opportunities_term = topic_context['opportunities_term']
+        risks_term = topic_context['risks_term']
+        guidance_term = topic_context['guidance_term']
+        subject_area = topic_context['subject_area']
 
-        # Bullet 1: Main research scope and coverage
-        summary_bullets.append("• **Research Scope**: Comprehensive analysis of recent evidence with systematic evaluation of quality and relevance")
+        # Bullet 1: Main research scope and coverage - topic-specific
+        summary_bullets.append(f"• **Research Scope**: Comprehensive analysis of recent evidence on {main_topic} with systematic evaluation of quality and relevance")
 
-        # Bullet 2: Key positive findings (if any)
-        positive_findings = [f for f in key_findings if any(word in f.lower() for word in ["benefit", "positive", "advantage"])]
+        # Bullet 2: Key positive findings - extract from actual data
+        positive_findings = [f for f in key_findings if any(word in f.lower() for word in ["benefit", "positive", "advantage", "opportunity", "improvement", "effective"])]
         if positive_findings:
-            summary_bullets.append(f"• **Potential Benefits**: {positive_findings[0].split('[')[0].strip()}")
+            # Clean up the finding text to be topic-neutral
+            finding_text = positive_findings[0].split('[')[0].strip()
+            # Replace food-specific terms with topic-appropriate ones
+            finding_text = self._adapt_finding_to_topic(finding_text, topic_context)
+            summary_bullets.append(f"• **{opportunities_term.title()}**: {finding_text}")
         else:
-            summary_bullets.append("• **Limited Positive Evidence**: Few documented benefits identified in current research")
+            summary_bullets.append(f"• **Limited {opportunities_term.title()}**: Current evidence shows limited documented {opportunities_term} in {subject_area}")
 
-        # Bullet 3: Key concerns or risks
-        risk_findings = [f for f in key_findings if any(word in f.lower() for word in ["risk", "harmful", "disease", "negative"])]
+        # Bullet 3: Key concerns or risks - extract from actual data
+        risk_findings = [f for f in key_findings if any(word in f.lower() for word in ["risk", "harmful", "disease", "negative", "challenge", "concern", "limitation"])]
         if risk_findings:
-            summary_bullets.append(f"• **Primary Concerns**: {risk_findings[0].split('[')[0].strip()}")
+            finding_text = risk_findings[0].split('[')[0].strip()
+            finding_text = self._adapt_finding_to_topic(finding_text, topic_context)
+            summary_bullets.append(f"• **Primary {risks_term.title()}**: {finding_text}")
         else:
-            summary_bullets.append("• **Risk Assessment**: Analysis identifies potential areas of concern requiring further investigation")
+            summary_bullets.append(f"• **{risks_term.title()} Assessment**: Analysis identifies potential {risks_term} requiring further investigation in {subject_area}")
 
         # Bullet 4: Evidence conflicts
         if conflicts:
@@ -143,20 +219,45 @@ class ReportAgent:
         else:
             summary_bullets.append("• **Evidence Consensus**: Findings show general alignment across different research sources")
 
-        # Bullet 5: Recommendations direction
+        # Bullet 5: Recommendations direction - topic and audience specific
         if target_audience == "executive":
-            summary_bullets.append("• **Strategic Direction**: Evidence supports cautious approach with continued monitoring and risk assessment")
+            summary_bullets.append(f"• **Strategic Direction**: Evidence supports systematic approach to {main_topic} implementation with continued monitoring")
         elif target_audience == "researcher":
-            summary_bullets.append("• **Research Priorities**: Multiple knowledge gaps identified requiring systematic investigation")
+            summary_bullets.append(f"• **Research Priorities**: Multiple knowledge gaps identified requiring systematic investigation in {subject_area}")
         else:  # consumer
-            summary_bullets.append("• **Consumer Guidance**: Evidence supports following established health organization recommendations")
+            if topic_context['domain'] == 'health':
+                summary_bullets.append(f"• **{guidance_term.title()}**: Evidence supports following established health organization recommendations")
+            else:
+                summary_bullets.append(f"• **{guidance_term.title()}**: Evidence supports informed decision-making based on current research findings")
 
         return "\n".join(summary_bullets)
 
+    def _adapt_finding_to_topic(self, finding_text: str, topic_context: Dict[str, str]) -> str:
+        """Adapt generic finding text to be topic-appropriate."""
+        # Remove food-specific terms and replace with topic-appropriate language
+        adaptations = {
+            'ultra-processed foods': topic_context['main_topic'],
+            'dietary': topic_context['subject_area'],
+            'health risks': f"{topic_context['risks_term']} for {topic_context['main_topic']}",
+            'health benefits': f"{topic_context['opportunities_term']} of {topic_context['main_topic']}",
+            'nutritional': topic_context['subject_area'],
+            'food': topic_context['main_topic'],
+            'health and nutrition': topic_context['main_topic']  # For when old health context bleeds through
+        }
+
+        adapted_text = finding_text
+        for old_term, new_term in adaptations.items():
+            adapted_text = adapted_text.replace(old_term, new_term)
+
+        return adapted_text
+
     def _generate_key_insights(self, key_findings: List[str], clusters: List[Dict],
-                             evidence_list: List[Dict], target_audience: str) -> str:
+                             evidence_list: List[Dict], target_audience: str, user_query: str) -> str:
         """Generate key insights with inline citations and confidence levels."""
         insights = []
+        topic_context = self._get_topic_context(user_query)
+        main_topic = topic_context['main_topic']
+        subject_area = topic_context['subject_area']
 
         # Process each cluster for insights
         for cluster in clusters:
@@ -166,10 +267,25 @@ class ReportAgent:
             if not items:
                 continue
 
-            # Find corresponding key finding
+            # Find corresponding key finding with fuzzy matching
             cluster_finding = None
             for finding in key_findings:
-                if cluster_label.lower() in finding.lower():
+                finding_lower = finding.lower()
+                cluster_lower = cluster_label.lower()
+
+                # Direct match
+                if cluster_lower in finding_lower:
+                    cluster_finding = finding
+                    break
+
+                # Fuzzy matching for plural/singular forms
+                if cluster_lower == "methodology" and ("methodolog" in finding_lower):
+                    cluster_finding = finding
+                    break
+                elif cluster_lower == "health risks" and ("health" in finding_lower and "risk" in finding_lower):
+                    cluster_finding = finding
+                    break
+                elif cluster_lower == "demographics" and ("demographic" in finding_lower):
                     cluster_finding = finding
                     break
 
@@ -178,19 +294,34 @@ class ReportAgent:
                 citation_match = re.search(r'\[([^\]]+)\]', cluster_finding)
                 citations = citation_match.group(1) if citation_match else ""
 
-                # Generate insight based on target audience
+                # Clean and adapt the finding text to the topic
                 insight_text = cluster_finding.split('[')[0].strip()
+                insight_text = self._adapt_finding_to_topic(insight_text, topic_context)
 
+                # Generate topic-appropriate insight labels based on cluster and audience
                 if target_audience == "executive":
-                    if "health risks" in cluster_label.lower():
-                        insight_text = f"**Risk Assessment**: {insight_text} This represents a significant business and regulatory risk factor"
-                    elif "recommendations" in cluster_label.lower():
-                        insight_text = f"**Regulatory Landscape**: {insight_text} indicating potential future policy changes"
+                    if any(term in cluster_label.lower() for term in ["risk", "health", "concern"]):
+                        insight_text = f"**Risk Assessment for {main_topic}**: {insight_text}"
+                    elif any(term in cluster_label.lower() for term in ["recommendation", "guidance"]):
+                        insight_text = f"**Strategic Implications**: {insight_text}"
+                    elif "methodology" in cluster_label.lower():
+                        insight_text = f"**Evidence Quality**: {insight_text}"
+                    else:
+                        insight_text = f"**{cluster_label} Analysis**: {insight_text}"
                 elif target_audience == "researcher":
                     if "methodology" in cluster_label.lower():
-                        insight_text = f"**Methodological Considerations**: {insight_text} requiring standardized research protocols"
-                    elif "gaps" in cluster_finding.lower():
-                        insight_text = f"**Research Opportunities**: {insight_text} presenting clear research directions"
+                        insight_text = f"**Methodological Considerations**: {insight_text} - implications for {subject_area} research protocols"
+                    elif any(term in cluster_label.lower() for term in ["gap", "limitation"]):
+                        insight_text = f"**Research Opportunities**: {insight_text} - priority areas for {subject_area}"
+                    else:
+                        insight_text = f"**{cluster_label} Findings**: {insight_text}"
+                else:  # consumer
+                    if any(term in cluster_label.lower() for term in ["risk", "health", "concern"]):
+                        insight_text = f"**Important Considerations**: {insight_text}"
+                    elif any(term in cluster_label.lower() for term in ["benefit", "opportunity"]):
+                        insight_text = f"**Potential Benefits**: {insight_text}"
+                    else:
+                        insight_text = f"**Key Finding**: {insight_text}"
 
                 # Add strength indicator based on evidence quality
                 quality_scores = [evidence_list[int(i)].get("quality", 0) for i in citations.split(",") if i.strip().isdigit() and int(i) < len(evidence_list)]
@@ -259,14 +390,18 @@ class ReportAgent:
         return timeline_section
 
     def _generate_recommendations(self, key_findings: List[str], conflicts: List[Dict],
-                                gaps: List[str], target_audience: str) -> str:
-        """Generate actionable, risk-aware recommendations based on audience."""
+                                gaps: List[str], target_audience: str, user_query: str) -> str:
+        """Generate actionable, risk-aware recommendations based on audience and topic."""
         recommendations = []
+        topic_context = self._get_topic_context(user_query)
+        main_topic = topic_context['main_topic']
+        guidance_term = topic_context['guidance_term']
+        domain = topic_context['domain']
 
         if target_audience == "executive":
             recommendations.extend([
-                "**1. Risk Assessment**: Conduct comprehensive risk analysis of current practices based on emerging evidence",
-                "**2. Policy Monitoring**: Establish systematic monitoring of regulatory developments and health organization guidance",
+                f"**1. Risk Assessment**: Conduct comprehensive risk analysis of current {main_topic} practices based on emerging evidence",
+                f"**2. Policy Monitoring**: Establish systematic monitoring of regulatory developments and {guidance_term}",
                 "**3. Stakeholder Communication**: Develop clear communication strategy addressing evidence conflicts and uncertainties"
             ])
 
@@ -276,7 +411,7 @@ class ReportAgent:
         elif target_audience == "researcher":
             recommendations.extend([
                 "**1. Methodological Standardization**: Develop standardized protocols to reduce methodological conflicts between studies",
-                "**2. Longitudinal Studies**: Prioritize long-term studies to address current evidence limitations"
+                f"**2. Longitudinal Studies**: Prioritize long-term studies to address current evidence limitations in {main_topic}"
             ])
 
             # Add specific research priorities based on gaps
@@ -284,14 +419,26 @@ class ReportAgent:
                 recommendations.append(f"**{i+3}. Research Priority**: {gap}")
 
         else:  # consumer
-            recommendations.extend([
-                "**1. Follow Established Guidelines**: Adhere to current health organization recommendations while research evolves",
-                "**2. Balanced Approach**: Consider both benefits and risks when making dietary decisions",
-                "**3. Stay Informed**: Monitor updates from reputable health organizations as evidence develops"
-            ])
+            if domain == 'health':
+                # Keep health-specific language for health topics
+                recommendations.extend([
+                    "**1. Follow Established Guidelines**: Adhere to current health organization recommendations while research evolves",
+                    "**2. Balanced Approach**: Consider both benefits and risks when making dietary decisions",
+                    "**3. Stay Informed**: Monitor updates from reputable health organizations as evidence develops"
+                ])
 
-            if conflicts:
-                recommendations.append("**4. Consult Professionals**: Given conflicting evidence, consult healthcare providers for personalized advice")
+                if conflicts:
+                    recommendations.append("**4. Consult Professionals**: Given conflicting evidence, consult healthcare providers for personalized advice")
+            else:
+                # Topic-appropriate language for non-health topics
+                recommendations.extend([
+                    f"**1. Follow Established Guidelines**: Adhere to current {guidance_term} while research evolves",
+                    f"**2. Balanced Approach**: Consider both benefits and challenges when making decisions about {main_topic}",
+                    "**3. Stay Informed**: Monitor updates from reputable sources as evidence develops"
+                ])
+
+                if conflicts:
+                    recommendations.append("**4. Consult Experts**: Given conflicting evidence, consult domain experts for personalized guidance")
 
         # Add risk-aware caveats
         recommendations.append("\n**Risk Considerations:**")

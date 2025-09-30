@@ -7,6 +7,7 @@ Orchestrates the complete workflow from query clarification to final report gene
 
 import sys
 import json
+import time
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
@@ -25,10 +26,14 @@ from agents import (
 )
 
 # Import utilities
-from utils import DataManager
+from utils import (
+    DataManager, get_telemetry_collector, record_phase, record_recovery, record_skip,
+    visualize_pipeline
+)
 
 
-def run_research_pipeline(user_query: str, test_mode: Optional[str] = None) -> Dict[str, Any]:
+def run_research_pipeline(user_query: str, test_mode: Optional[str] = None,
+                         enable_viz: bool = False) -> Dict[str, Any]:
     """
     Execute the complete 10-phase Deep Research Agent pipeline.
 
@@ -39,12 +44,23 @@ def run_research_pipeline(user_query: str, test_mode: Optional[str] = None) -> D
         user_query: The user's research query to process
         test_mode: Optional test mode for specific phases
                   (routing, observability, researcher, compress, report, recovery)
+        enable_viz: Enable terminal visualization
 
     Returns:
         Dict containing execution results and file paths for generated outputs
     """
-    print("Deep Research Agent initialized")
-    print(f"User Query: {user_query}\n")
+    # Initialize telemetry and visualization
+    collector = get_telemetry_collector()
+    collector.clear()  # Clear any previous runs
+    collector.set_pipeline_start()
+
+    viz = None
+    if enable_viz:
+        print("🔬 Starting Deep Research Agent with visualization...")
+        viz = visualize_pipeline(collector)
+    else:
+        print("Deep Research Agent initialized")
+        print(f"User Query: {user_query}\n")
 
     # Initialize data manager for new directory structure
     data_manager = DataManager()
@@ -69,99 +85,111 @@ def run_research_pipeline(user_query: str, test_mode: Optional[str] = None) -> D
 
     try:
         # Phase 1: Clarify
-        clarify_agent = ClarifyAgent()
-        clarified = clarify_agent.clarify_query(user_query)
+        with record_phase("Clarify Agent", notes="Processing and clarifying user query"):
+            clarify_agent = ClarifyAgent()
+            clarified = clarify_agent.clarify_query(user_query)
 
-        print("=== CLARIFIED RESEARCH SPECIFICATION ===")
-        print(json.dumps(clarified, indent=2, ensure_ascii=False))
-        print("\n")
+            if not enable_viz:
+                print("=== CLARIFIED RESEARCH SPECIFICATION ===")
+                print(json.dumps(clarified, indent=2, ensure_ascii=False))
+                print("\n")
 
-        # Save clarified query
-        clarified_filename = data_manager.save_clarify(clarified)
-        logs.append({
-            "timestamp": datetime.now().isoformat(),
-            "phase": "clarify",
-            "action": "complete",
-            "data": {"file": clarified_filename}
-        })
-        results["files_generated"]["clarify"] = clarified_filename
+            # Save clarified query
+            clarified_filename = data_manager.save_clarify(clarified)
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "phase": "clarify",
+                "action": "complete",
+                "data": {"file": clarified_filename}
+            })
+            results["files_generated"]["clarify"] = clarified_filename
 
         # Phase 2: Research Brief
-        brief_agent = ResearchBriefAgent()
-        brief_md = brief_agent.create_brief(clarified)
+        with record_phase("Research Brief Agent", notes="Creating comprehensive research brief"):
+            brief_agent = ResearchBriefAgent()
+            brief_md = brief_agent.create_brief(clarified)
 
-        print("=== RESEARCH BRIEF ===")
-        print(brief_md)
-        print("\n")
+            if not enable_viz:
+                print("=== RESEARCH BRIEF ===")
+                print(brief_md)
+                print("\n")
 
-        # Save research brief
-        logs.append({
-            "timestamp": datetime.now().isoformat(),
-            "phase": "brief",
-            "action": "start",
-            "data": {}
-        })
-        brief_filename = data_manager.save_brief(brief_md)
-        logs.append({
-            "timestamp": datetime.now().isoformat(),
-            "phase": "brief",
-            "action": "complete",
-            "data": {"file": brief_filename}
-        })
-        results["files_generated"]["brief"] = brief_filename
+            # Save research brief
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "phase": "brief",
+                "action": "start",
+                "data": {}
+            })
+            brief_filename = data_manager.save_brief(brief_md)
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "phase": "brief",
+                "action": "complete",
+                "data": {"file": brief_filename}
+            })
+            results["files_generated"]["brief"] = brief_filename
 
         # Phase 3: Supervisor/Planner
-        planner_agent = SupervisorPlannerAgent()
-        search_plan = planner_agent.create_plan(brief_md)
+        with record_phase("Supervisor Planner Agent", notes="Creating targeted search plan"):
+            planner_agent = SupervisorPlannerAgent()
+            search_plan = planner_agent.create_plan(brief_md)
 
-        print("=== SEARCH PLAN ===")
-        print(json.dumps(search_plan, indent=2, ensure_ascii=False))
+            if not enable_viz:
+                print("=== SEARCH PLAN ===")
+                print(json.dumps(search_plan, indent=2, ensure_ascii=False))
 
-        # Save search plan
-        logs.append({
-            "timestamp": datetime.now().isoformat(),
-            "phase": "plan",
-            "action": "start",
-            "data": {}
-        })
-        plan_filename = data_manager.save_plan(search_plan)
-        logs.append({
-            "timestamp": datetime.now().isoformat(),
-            "phase": "plan",
-            "action": "complete",
-            "data": {"file": plan_filename}
-        })
-        results["files_generated"]["plan"] = plan_filename
+            # Save search plan
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "phase": "plan",
+                "action": "start",
+                "data": {}
+            })
+            plan_filename = data_manager.save_plan(search_plan)
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "phase": "plan",
+                "action": "complete",
+                "data": {"file": plan_filename}
+            })
+            results["files_generated"]["plan"] = plan_filename
 
         # Phase 9: Model Router (test routing decisions)
         if test_mode == "routing":
-            print("\n=== TESTING MODEL ROUTER AGENT ===")
-            router_agent = ModelRouterAgent()
+            with record_phase("Model Router Agent", notes="Testing model routing decisions"):
+                if not enable_viz:
+                    print("\n=== TESTING MODEL ROUTER AGENT ===")
+                router_agent = ModelRouterAgent()
 
-            # Test routing for the current query
-            routing_result = router_agent.route_models(user_query)
+                # Test routing for the current query
+                routing_result = router_agent.route_models(user_query)
 
-            print("=== MODEL ROUTING DECISIONS ===")
-            print(json.dumps(routing_result, indent=2, ensure_ascii=False))
+                if not enable_viz:
+                    print("=== MODEL ROUTING DECISIONS ===")
+                    print(json.dumps(routing_result, indent=2, ensure_ascii=False))
 
-            # Save routing decision to logs
-            logs.append({
-                "timestamp": datetime.now().isoformat(),
-                "phase": "routing",
-                "action": "complete",
-                "data": routing_result
-            })
+                # Save routing decision to logs
+                logs.append({
+                    "timestamp": datetime.now().isoformat(),
+                    "phase": "routing",
+                    "action": "complete",
+                    "data": routing_result
+                })
 
-            print(f"\n=== ROUTING DECISION LOGGED ===")
-            print(f"Routing decision added to run logs")
-            results["routing_result"] = routing_result
+                if not enable_viz:
+                    print(f"\n=== ROUTING DECISION LOGGED ===")
+                    print(f"Routing decision added to run logs")
+                results["routing_result"] = routing_result
 
         # Phase 10: Observability (test log summarization)
         if test_mode == "observability":
-            print("\n=== TESTING OBSERVABILITY AGENT ===")
+            with record_phase("Observability Agent", notes="Testing log summarization and audit trail generation"):
+                if not enable_viz:
+                    print("\n=== TESTING OBSERVABILITY AGENT ===")
 
-            # Create sample log data from current session
-            sample_logs = f"""Deep Research Agent initialized
+                # Create sample log data from current session
+                sample_logs = f"""Deep Research Agent initialized
 User Query: {user_query}
 
 === CLARIFIED RESEARCH SPECIFICATION ===
@@ -200,181 +228,213 @@ Selected model profiles with 2 premium allocations
 Total Cost: 11.0
 Files saved to: data/intermediate/routing_decision_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json"""
 
-            # Test observability agent
-            obs_agent = ObservabilityAgent()
-            audit_trail = obs_agent.create_audit_trail(sample_logs)
+                # Test observability agent
+                obs_agent = ObservabilityAgent()
+                audit_trail = obs_agent.create_audit_trail(sample_logs)
 
-            print("=== AUDIT TRAIL GENERATED ===")
-            print(audit_trail[:1000] + "..." if len(audit_trail) > 1000 else audit_trail)
+                if not enable_viz:
+                    print("=== AUDIT TRAIL GENERATED ===")
+                    print(audit_trail[:1000] + "..." if len(audit_trail) > 1000 else audit_trail)
 
-            # Save audit trail
-            import os
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            audit_filename = f"data/logs/audit_trail_{timestamp}.md"
-            os.makedirs("data/logs", exist_ok=True)
-            with open(audit_filename, 'w', encoding='utf-8') as f:
-                f.write(audit_trail)
+                # Save audit trail
+                import os
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                audit_filename = f"data/logs/audit_trail_{timestamp}.md"
+                os.makedirs("data/logs", exist_ok=True)
+                with open(audit_filename, 'w', encoding='utf-8') as f:
+                    f.write(audit_trail)
 
-            print(f"\n=== AUDIT TRAIL SAVED ===")
-            print(f"Audit trail saved to: {audit_filename}")
-            results["files_generated"]["audit_trail"] = audit_filename
+                if not enable_viz:
+                    print(f"\n=== AUDIT TRAIL SAVED ===")
+                    print(f"Audit trail saved to: {audit_filename}")
+                results["files_generated"]["audit_trail"] = audit_filename
 
         # Phase 4: Evidence Collection - Run by default or when testing
         if test_mode is None or test_mode == "researcher":
-            print("\n=== PHASE 4: EVIDENCE COLLECTION ===")
-            researcher_agent = ResearcherAgent()
+            with record_phase("Researcher Agent", notes="Collecting evidence from multiple sources"):
+                if not enable_viz:
+                    print("\n=== PHASE 4: EVIDENCE COLLECTION ===")
+                researcher_agent = ResearcherAgent()
 
-            # Collect evidence from all subqueries (or limit for testing)
-            all_evidence = []
-            flattened_evidence = []
+                # Collect evidence from all subqueries (or limit for testing)
+                all_evidence = []
+                flattened_evidence = []
 
-            if test_mode == "researcher":
-                # Test mode: only first subquery
-                max_queries = 1
-                print("Testing mode: processing first subquery only")
-            else:
-                # Full mode: process all subqueries
-                max_queries = len(search_plan["plan"])
-                print(f"Full mode: processing {max_queries} subqueries")
+                if test_mode == "researcher":
+                    # Test mode: only first subquery
+                    max_queries = 1
+                    if not enable_viz:
+                        print("Testing mode: processing first subquery only")
+                else:
+                    # Full mode: process all subqueries
+                    max_queries = len(search_plan["plan"])
+                    if not enable_viz:
+                        print(f"Full mode: processing {max_queries} subqueries")
 
-            for i in range(min(max_queries, len(search_plan["plan"]))):
-                subquery = search_plan["plan"][i]
-                print(f"\nSearching subquery {i+1}/{max_queries}: {subquery['subquery']}")
+                for i in range(min(max_queries, len(search_plan["plan"]))):
+                    subquery = search_plan["plan"][i]
+                    subquery_text = subquery.get('subquery', f'Subquery {i+1}')
 
-                evidence_result = researcher_agent.research_subquery(subquery)
-                all_evidence.append(evidence_result)
+                    with record_phase(f"Research Subquery {i+1}",
+                                    notes=f"Searching: {subquery_text[:50]}...",
+                                    parent_phase="Researcher Agent",
+                                    subquery_index=i+1,
+                                    total_subqueries=max_queries):
+                        if not enable_viz:
+                            print(f"\nSearching subquery {i+1}/{max_queries}: {subquery_text}")
 
-                # Flatten evidence for easier processing
-                for evidence in evidence_result.get("findings", []):
-                    flattened_evidence.append(evidence)
+                        evidence_result = researcher_agent.research_subquery(subquery)
+                        all_evidence.append(evidence_result)
 
-                print(f"Found {len(evidence_result.get('findings', []))} pieces of evidence")
+                        # Flatten evidence for easier processing
+                        for evidence in evidence_result.get("findings", []):
+                            flattened_evidence.append(evidence)
 
-            print(f"\n=== TOTAL EVIDENCE COLLECTED: {len(flattened_evidence)} items ===")
+                        if not enable_viz:
+                            print(f"Found {len(evidence_result.get('findings', []))} pieces of evidence")
 
-            # Save evidence
-            if flattened_evidence:
-                evidence_filename = data_manager.save_evidence(flattened_evidence)
-                logs.append({
-                    "timestamp": datetime.now().isoformat(),
-                    "phase": "evidence",
-                    "action": "complete",
-                    "data": {"file": evidence_filename, "count": len(flattened_evidence)}
-                })
-                results["files_generated"]["evidence"] = evidence_filename
-                results["evidence_count"] = len(flattened_evidence)
+                if not enable_viz:
+                    print(f"\n=== TOTAL EVIDENCE COLLECTED: {len(flattened_evidence)} items ===")
+
+                # Save evidence
+                if flattened_evidence:
+                    evidence_filename = data_manager.save_evidence(flattened_evidence)
+                    logs.append({
+                        "timestamp": datetime.now().isoformat(),
+                        "phase": "evidence",
+                        "action": "complete",
+                        "data": {"file": evidence_filename, "count": len(flattened_evidence)}
+                    })
+                    results["files_generated"]["evidence"] = evidence_filename
+                    results["evidence_count"] = len(flattened_evidence)
 
         # Phase 5: Compress + Conflict Analysis - Run by default or when testing
         if test_mode is None or test_mode == "compress":
-            print("\n=== PHASE 5: COMPRESS + CONFLICT ANALYSIS ===")
-            compress_agent = CompressConflictAgent()
+            with record_phase("Compress Conflict Agent", notes="Synthesizing findings and detecting conflicts"):
+                if not enable_viz:
+                    print("\n=== PHASE 5: COMPRESS + CONFLICT ANALYSIS ===")
+                compress_agent = CompressConflictAgent()
 
-            # Use evidence collected in Phase 4 (reuse variables from scope)
-            if 'all_evidence' in locals() and all_evidence:
-                print(f"Using {len(all_evidence)} evidence collections from Phase 4")
-                compression_result = compress_agent.compress_and_align(all_evidence)
-            else:
-                print("No evidence available - running limited compression test")
-                # Fallback for test-only mode
-                researcher_agent = ResearcherAgent()
-                test_evidence = []
-                max_queries = min(3, len(search_plan["plan"]))
-                for i in range(max_queries):
-                    subquery = search_plan["plan"][i]
-                    evidence_result = researcher_agent.research_subquery(subquery)
-                    test_evidence.append(evidence_result)
-                compression_result = compress_agent.compress_and_align(test_evidence)
-                # Update flattened_evidence for later use
-                flattened_evidence = []
-                for evidence_result in test_evidence:
-                    for evidence in evidence_result.get("findings", []):
-                        flattened_evidence.append(evidence)
+                # Use evidence collected in Phase 4 (reuse variables from scope)
+                if 'all_evidence' in locals() and all_evidence:
+                    if not enable_viz:
+                        print(f"Using {len(all_evidence)} evidence collections from Phase 4")
+                    compression_result = compress_agent.compress_and_align(all_evidence)
+                else:
+                    if not enable_viz:
+                        print("No evidence available - running limited compression test")
+                    # Fallback for test-only mode
+                    researcher_agent = ResearcherAgent()
+                    test_evidence = []
+                    max_queries = min(3, len(search_plan["plan"]))
+                    for i in range(max_queries):
+                        subquery = search_plan["plan"][i]
+                        evidence_result = researcher_agent.research_subquery(subquery)
+                        test_evidence.append(evidence_result)
+                    compression_result = compress_agent.compress_and_align(test_evidence)
+                    # Update flattened_evidence for later use
+                    flattened_evidence = []
+                    for evidence_result in test_evidence:
+                        for evidence in evidence_result.get("findings", []):
+                            flattened_evidence.append(evidence)
 
-            print("\n=== COMPRESSION & CONFLICT ANALYSIS ===")
-            print(json.dumps(compression_result, indent=2, ensure_ascii=False))
+                if not enable_viz:
+                    print("\n=== COMPRESSION & CONFLICT ANALYSIS ===")
+                    print(json.dumps(compression_result, indent=2, ensure_ascii=False))
 
-            # Save compression result
-            compression_filename = data_manager.save_compressed(compression_result)
-            logs.append({
-                "timestamp": datetime.now().isoformat(),
-                "phase": "compress",
-                "action": "complete",
-                "data": {"file": compression_filename}
-            })
-            results["files_generated"]["compress"] = compression_filename
+                # Save compression result
+                compression_filename = data_manager.save_compressed(compression_result)
+                logs.append({
+                    "timestamp": datetime.now().isoformat(),
+                    "phase": "compress",
+                    "action": "complete",
+                    "data": {"file": compression_filename}
+                })
+                results["files_generated"]["compress"] = compression_filename
 
         # Phase 6: Report Generation - Run by default or when testing
         if test_mode is None or test_mode == "report":
-            print("\n=== PHASE 6: REPORT GENERATION ===")
-            report_agent = ReportAgent()
+            with record_phase("Report Agent", notes="Generating structured research report", model_used="gpt-4"):
+                if not enable_viz:
+                    print("\n=== PHASE 6: REPORT GENERATION ===")
+                report_agent = ReportAgent()
 
-            # Use data from previous phases
-            if 'compression_result' in locals() and 'flattened_evidence' in locals():
-                print(f"Using compression result and {len(flattened_evidence)} evidence items from previous phases")
-            else:
-                print("No previous data available - running test mode with fresh data collection")
-                # Fallback for test-only mode - collect fresh data
-                researcher_agent = ResearcherAgent()
-                compress_agent = CompressConflictAgent()
-                all_evidence = []
-                flattened_evidence = []
-                max_queries = min(3, len(search_plan["plan"]))
+                # Use data from previous phases
+                if 'compression_result' in locals() and 'flattened_evidence' in locals():
+                    if not enable_viz:
+                        print(f"Using compression result and {len(flattened_evidence)} evidence items from previous phases")
+                else:
+                    if not enable_viz:
+                        print("No previous data available - running test mode with fresh data collection")
+                    # Fallback for test-only mode - collect fresh data
+                    researcher_agent = ResearcherAgent()
+                    compress_agent = CompressConflictAgent()
+                    all_evidence = []
+                    flattened_evidence = []
+                    max_queries = min(3, len(search_plan["plan"]))
 
-                for i in range(max_queries):
-                    subquery = search_plan["plan"][i]
-                    print(f"Researching subquery {i+1}: {subquery['subquery']}")
-                    evidence_result = researcher_agent.research_subquery(subquery)
-                    all_evidence.append(evidence_result)
-                    for evidence in evidence_result.get("findings", []):
-                        flattened_evidence.append(evidence)
+                    for i in range(max_queries):
+                        subquery = search_plan["plan"][i]
+                        if not enable_viz:
+                            print(f"Researching subquery {i+1}: {subquery['subquery']}")
+                        evidence_result = researcher_agent.research_subquery(subquery)
+                        all_evidence.append(evidence_result)
+                        for evidence in evidence_result.get("findings", []):
+                            flattened_evidence.append(evidence)
 
-                compression_result = compress_agent.compress_and_align(all_evidence)
+                    compression_result = compress_agent.compress_and_align(all_evidence)
 
-            # Generate report
-            target_audience = "consumer"  # Can be changed to "executive" or "researcher"
-            final_report = report_agent.generate_report(
-                compression_result,
-                flattened_evidence,
-                user_query,
-                target_audience
-            )
+                # Generate report
+                target_audience = "consumer"  # Can be changed to "executive" or "researcher"
+                final_report = report_agent.generate_report(
+                    compression_result,
+                    flattened_evidence,
+                    user_query,
+                    target_audience
+                )
 
-            print("\n=== FINAL RESEARCH REPORT ===")
-            print(final_report)
+                if not enable_viz:
+                    print("\n=== FINAL RESEARCH REPORT ===")
+                    print(final_report)
 
-            # Save report
-            report_filename = data_manager.save_report(final_report)
-            logs.append({
-                "timestamp": datetime.now().isoformat(),
-                "phase": "report",
-                "action": "complete",
-                "data": {"file": report_filename, "audience": target_audience}
-            })
-            results["files_generated"]["report"] = report_filename
+                # Save report
+                report_filename = data_manager.save_report(final_report)
+                logs.append({
+                    "timestamp": datetime.now().isoformat(),
+                    "phase": "report",
+                    "action": "complete",
+                    "data": {"file": report_filename, "audience": target_audience}
+                })
+                results["files_generated"]["report"] = report_filename
 
-            print(f"\n=== REPORT SAVED ===")
-            print(f"Report saved to: {report_filename}")
+                if not enable_viz:
+                    print(f"\n=== REPORT SAVED ===")
+            if not enable_viz:
+                print(f"Report saved to: {report_filename}")
 
             # Phase 7: Evaluation/QA
-            evaluator_agent = EvaluatorAgent()
-            evaluation_result = evaluator_agent.evaluate_report(final_report, flattened_evidence)
+            with record_phase("Evaluator Agent", notes="Assessing report quality across 6 dimensions"):
+                evaluator_agent = EvaluatorAgent()
+                evaluation_result = evaluator_agent.evaluate_report(final_report, flattened_evidence)
 
-            print(f"\n=== REPORT EVALUATION ===")
-            print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
+                if not enable_viz:
+                    print(f"\n=== REPORT EVALUATION ===")
+                    print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
 
-            # Save evaluation
-            eval_filename = data_manager.save_evaluation(evaluation_result)
-            logs.append({
-                "timestamp": datetime.now().isoformat(),
-                "phase": "evaluation",
-                "action": "complete",
-                "data": {"file": eval_filename, "overall_score": evaluation_result.get("overall_score", 0)}
-            })
-            results["files_generated"]["evaluation"] = eval_filename
-            results["evaluation_score"] = evaluation_result.get("overall_score", 0)
+                # Save evaluation
+                eval_filename = data_manager.save_evaluation(evaluation_result)
+                logs.append({
+                    "timestamp": datetime.now().isoformat(),
+                    "phase": "evaluation",
+                    "action": "complete",
+                    "data": {"file": eval_filename, "overall_score": evaluation_result.get("overall_score", 0)}
+                })
+                results["files_generated"]["evaluation"] = eval_filename
+                results["evaluation_score"] = evaluation_result.get("overall_score", 0)
 
-            print(f"\n=== EVALUATION SAVED ===")
-            print(f"Evaluation saved to: {eval_filename}")
+                if not enable_viz:
+                    print(f"\n=== EVALUATION SAVED ===")
+                    print(f"Evaluation saved to: {eval_filename}")
 
         # Phase 8: Recovery/Replan (when testing recovery)
         if test_mode == "recovery":
@@ -395,16 +455,24 @@ Files saved to: data/intermediate/routing_decision_{datetime.now().strftime("%Y%
         results["files_generated"]["logs"] = logs_filename
         results["execution_status"] = "completed"
 
-        print(f"\n=== RUN COMPLETE ===")
-        print(f"Run ID: {run_id}")
-        print(f"Logs saved to: {logs_filename}")
-        if "report" in results["files_generated"]:
-            print(f"Report available at: data/runs/{run_id}/report.md")
-            print(f"Also exported to: data/out/research_report_{run_id}.md")
+        # Mark pipeline completion
+        collector.set_pipeline_end("completed")
+
+        if not enable_viz:
+            print(f"\n=== RUN COMPLETE ===")
+            print(f"Run ID: {run_id}")
+            print(f"Logs saved to: {logs_filename}")
+            if "report" in results["files_generated"]:
+                print(f"Report available at: data/runs/{run_id}/report.md")
+                print(f"Also exported to: data/out/research_report_{run_id}.md")
 
     except Exception as e:
-        print(f"\n=== EXECUTION ERROR ===")
-        print(f"Error: {str(e)}")
+        # Mark pipeline failure
+        collector.set_pipeline_end("failed")
+
+        if not enable_viz:
+            print(f"\n=== EXECUTION ERROR ===")
+            print(f"Error: {str(e)}")
         results["execution_status"] = "failed"
         results["error"] = str(e)
 
@@ -414,6 +482,13 @@ Files saved to: data/intermediate/routing_decision_{datetime.now().strftime("%Y%
             "phase": "pipeline_execution",
             "query": user_query
         })
+
+    finally:
+        # Stop visualization if enabled
+        if viz:
+            # Give visualization time to show final state
+            time.sleep(2)
+            viz.stop()
 
     return results
 

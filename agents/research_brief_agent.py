@@ -6,6 +6,7 @@ Generates sub-questions, inclusion criteria, and evidence requirements.
 """
 
 from typing import Dict, Any, List
+from utils import extract_topic_keywords
 
 
 class ResearchBriefAgent:
@@ -36,8 +37,11 @@ class ResearchBriefAgent:
         audience = clarify_json.get("audience", "")
         success_criteria = clarify_json.get("success_criteria", [])
 
+        # Extract topic keywords for maintaining focus
+        topic_keywords = extract_topic_keywords(objective)
+
         # Generate sub-questions based on objective
-        sub_questions = self._generate_sub_questions(objective, clarify_json)
+        sub_questions = self._generate_sub_questions(objective, clarify_json, topic_keywords)
 
         # Define inclusion criteria
         inclusion_criteria = self._define_inclusion_criteria(clarify_json)
@@ -61,6 +65,7 @@ class ResearchBriefAgent:
 - **Time Window:** {time_window}
 - **Geography:** {geography}
 - **Target Audience:** {audience}
+- **Topic Keywords:** {', '.join(topic_keywords)}
 
 ## Key Sub-Questions
 
@@ -84,7 +89,7 @@ class ResearchBriefAgent:
 
         return brief_md
 
-    def _generate_sub_questions(self, objective: str, clarify_json: Dict) -> List[str]:
+    def _generate_sub_questions(self, objective: str, clarify_json: Dict, topic_keywords: List[str]) -> List[str]:
         """Generate 3-6 balanced sub-questions based on research objective."""
         sub_questions = []
 
@@ -109,13 +114,16 @@ class ResearchBriefAgent:
                 "What practical implications emerge from the evidence?"
             ]
         else:
-            # Generic sub-questions
+            # Generate topic-specific sub-questions using extracted keywords
+            main_topic = ' '.join(topic_keywords[:2]) if topic_keywords else "the topic"
+
             sub_questions = [
-                "What is the current state of research on this topic?",
-                "What are the main arguments and perspectives?",
-                "What evidence supports different viewpoints?",
-                "What are the practical implications?",
-                "What gaps or limitations exist in current knowledge?"
+                f"What is the current state of research on {main_topic}?",
+                f"What are the main applications and opportunities for {main_topic}?",
+                f"What are the key challenges and limitations regarding {main_topic}?",
+                f"What evidence supports different approaches to {main_topic}?",
+                f"What are the practical implications of {main_topic} implementation?",
+                f"What gaps or future research directions exist for {main_topic}?"
             ]
 
         return sub_questions[:6]  # Limit to 6 questions max

@@ -38,6 +38,8 @@ deep-research-agent/
 │   └── __init__.py           # Pipeline exports
 ├── utils/                     # Shared utilities
 │   ├── data_manager.py       # File operations & data persistence
+│   ├── telemetry.py          # Agent execution tracking
+│   ├── terminal_viz.py       # Interactive terminal visualization
 │   └── __init__.py           # Utility exports
 └── main.py                   # CLI interface
 ```
@@ -124,6 +126,9 @@ pip install -r requirements.txt
 # Run a complete research session
 python main.py "What are the benefits of exercise?"
 
+# Enable interactive terminal visualization
+python main.py "What are the benefits of exercise?" --viz
+
 # Test specific components
 python main.py "AI safety research" --test-researcher
 python main.py "Climate change impacts" --test-compress
@@ -131,10 +136,124 @@ python main.py "Remote work effectiveness" --test-report
 python main.py "Model routing demo" --test-routing
 python main.py "Observability demo" --test-observability
 
+# Combine visualization with test modes
+python main.py "Research query" --test-researcher --viz
+
 # Import agents programmatically
 python -c "from agents import ClarifyAgent, ResearcherAgent; agent = ClarifyAgent()"
 python -c "from pipeline import run_research_pipeline; run_research_pipeline('test', None)"
 ```
+
+### 📊 Interactive Terminal Visualization
+
+The Deep Research Agent includes a real-time terminal visualization that shows agent execution progress, timing, and status using the Rich library with high-precision timing and comprehensive phase coverage.
+
+```bash
+# Enable visualization mode
+python main.py "Your research query" --viz
+
+# Run demo to see all features
+python demo_visualization.py
+```
+
+**Advanced Visualization Features:**
+- **Live Timeline**: Real-time display of all agent execution phases
+- **High-Precision Timing**: Sub-second duration tracking using `perf_counter()`
+- **Status Indicators**: ✅ Success, 🔄 Running, ❌ Failed, ⏭️ Skipped, 🔧 Recovery
+- **Nested Operations**: Visual representation of subqueries, recovery, and sub-operations
+- **Pipeline Completion**: Final status display with total runtime
+- **Active Phase Tracking**: Shows current operation and idle states
+- **Full Phase Coverage**: Instruments all 10 pipeline phases
+
+**Example Terminal Output (During Execution):**
+```
+🔬 Deep Research Agent Pipeline │ Runtime: 2m 34s │ Active: Research Agent
+
+┌─── Execution Timeline ───┐ ┌─── Current Phase ───┐
+│ 🔬 Research Pipeline     │ │ Currently Running:  │
+│ ├─ ✅ Clarify Agent      │ │ Research Agent      │
+│ │  (0.8s) [14:23:15]     │ │                     │
+│ │  Processing query      │ │ Running for: 45.2s  │
+│ ├─ ✅ Research Brief     │ │                     │
+│ │  (1.2s) [14:23:16]     │ │ Notes: Searching    │
+│ │  Created brief         │ │ subquery 3/6        │
+│ ├─ ✅ Supervisor Plan    │ │                     │
+│ │  (0.5s) [14:23:17]     │ │ Model: gpt-4        │
+│ │  Generated plan        │ │                     │
+│ └─ 🔄 Research Agent     │ └─────────────────────┘
+│    │ ├─ ✅ Subquery 1    │
+│    │ │  (12.3s)          │
+│    │ ├─ ✅ Subquery 2    │
+│    │ │  (15.1s)          │
+│    │ └─ 🔄 Subquery 3    │
+│    │    (18.0s)          │
+│    Collecting evidence   │
+└─────────────────────────┘
+
+Status: ✅ 5 │ 🔄 2 │ ⏳ 3
+```
+
+**Example Terminal Output (Completed):**
+```
+🔬 Deep Research Agent Pipeline │ Completed in 4m 12.3s
+
+┌─── Execution Timeline ───┐ ┌─── Phase Details ───┐
+│ 🔬 Research Pipeline     │ │ Last Phase:         │
+│ ├─ ✅ Clarify Agent      │ │ Evaluator Agent     │
+│ │  (0.8s) [14:23:15]     │ │                     │
+│ ├─ ✅ Research Brief     │ │ Status: Success     │
+│ │  (1.2s) [14:23:16]     │ │ Duration: 2.1s      │
+│ ├─ ✅ Supervisor Plan    │ │                     │
+│ │  (0.5s) [14:23:17]     │ │ Notes: Quality      │
+│ ├─ ✅ Researcher Agent   │ │ assessment complete │
+│ │  ├─ ✅ Subquery 1      │ │                     │
+│ │  ├─ ✅ Subquery 2      │ └─────────────────────┘
+│ │  └─ ✅ Subquery 3      │
+│ ├─ ✅ Compress Agent     │
+│ ├─ ✅ Report Agent       │
+│ │  └─ 🔧 Recovery        │
+│ ├─ ✅ Evaluator Agent    │
+│ ├─ ⏭️ Model Router       │
+│ ├─ ⏭️ Observability      │
+│ └─ 🏁 Pipeline Completed │
+│    (4m 12.3s)            │
+└─────────────────────────┘
+
+Status: ✅ 8 │ 🔧 1 │ ⏭️ 2
+```
+
+### 🎯 Topic Fidelity & Keyphrase Extraction
+
+The Deep Research Agent includes advanced topic fidelity features to ensure research stays focused on the intended subject throughout the entire pipeline.
+
+**Key Features:**
+- **Intelligent Keyphrase Extraction**: Automatically extracts meaningful topic keywords from research queries
+- **Topic Flow Management**: Ensures keywords propagate correctly through all pipeline phases
+- **Quality Scoring**: Ranks keyphrases by relevance and domain specificity
+- **Anti-Drift Protection**: Prevents topic drift that could lead to off-topic results
+
+**How It Works:**
+1. **Extraction**: Uses lightweight NLP to identify 2-4 most relevant keyphrases from user queries
+2. **Brief Integration**: Keywords are embedded in research briefs to maintain focus
+3. **Plan Generation**: Supervisor agent uses keywords to generate topic-specific subqueries
+4. **Quality Assurance**: Regression tests ensure topic fidelity across pipeline phases
+
+**Example Topic Flow:**
+```
+Query: "The Applications of Artificial Intelligence in Education: Opportunities and Challenges"
+
+Extracted Keywords: ['artificial intelligence', 'education', 'applications', 'opportunities']
+
+Research Brief:
+- **Topic Keywords:** artificial intelligence, education, applications, opportunities
+
+Generated Subqueries:
+- "artificial intelligence education applications 2024 OR 2025"
+- "artificial intelligence education opportunities challenges 2024 OR 2025"
+- "artificial intelligence education current state research 2024 OR 2025"
+```
+
+This prevents the common issue where generic terms lead to off-topic results (e.g., food research when asking about AI education).
 
 ### Example Output
 
@@ -206,7 +325,10 @@ deep-research-agent/
 │   └── runner.py                 # Main execution logic
 ├── utils/                         # Shared utilities
 │   ├── __init__.py               # Utility exports
-│   └── data_manager.py           # File operations & persistence
+│   ├── data_manager.py           # File operations & persistence
+│   ├── telemetry.py              # Agent execution tracking & events
+│   ├── terminal_viz.py           # Interactive Rich-based visualization
+│   └── keyphrase_extractor.py    # Topic keyword extraction & fidelity
 ├── main.py                        # CLI interface
 ├── requirements.txt               # Python dependencies
 ├── data/                          # Data directory (see above)
@@ -221,6 +343,8 @@ deep-research-agent/
 - **Pipeline Runner**: Centralized workflow orchestration with phase management
 - **DataManager**: Handles file operations and timestamped directory structure
 - **CLI Interface**: Clean command-line interface with test mode support
+- **Telemetry System**: Real-time agent execution tracking and event collection
+- **Terminal Visualization**: Interactive Rich-based UI for live pipeline monitoring
 - **Caching System**: Web search and content fetch caching
 - **Quality Assurance**: Automatic evaluation and recovery
 - **Observability**: Structured logging and audit trails
@@ -236,10 +360,13 @@ python test_evaluator.py           # Quality assessment
 python test_recovery_forced.py     # Recovery mechanisms
 python test_model_router.py        # Cost optimization
 python test_observability.py       # Audit trail generation
+python test_simple_telemetry.py    # Telemetry and visualization
+python tests/test_topic_fidelity.py # Topic fidelity and keyphrase extraction
 
 # Demo complete functionality
 python demo_observability.py       # Observability features
 python demo_model_routing.py       # Model routing strategies
+python demo_visualization.py       # Terminal visualization demo
 
 # Test modular architecture
 python -c "from agents import *; print('All agents imported successfully')"
@@ -258,6 +385,8 @@ python -c "from utils import DataManager; print('Utils imported successfully')"
 - **Self-Healing**: Automatic quality improvement through targeted re-search
 - **Cost Optimization**: Dynamic model routing based on complexity
 - **Full Observability**: Complete audit trails and structured logging
+- **Interactive Visualization**: Real-time terminal UI with Rich library
+- **Topic Fidelity**: Intelligent keyphrase extraction prevents research drift
 - **Caching**: Efficient web search and content caching
 - **Reproducibility**: Timestamped runs with complete data lineage
 
@@ -329,6 +458,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **DuckDuckGo**: Privacy-respecting search API
 - **Trafilatura**: High-quality web content extraction
 - **Jinja2**: Flexible template engine
+- **Rich**: Beautiful terminal user interfaces
 
 ## 📞 Support
 
